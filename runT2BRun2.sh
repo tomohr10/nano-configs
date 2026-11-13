@@ -1,10 +1,16 @@
 
+# Usage: ./runT2BRun2.sh <2018|2017|2016preVFP|2016postVFP> [--dryrun]
+#            [--prepare-recovery-task|--submit-recovery-task [--force]]
+#            [--switch-to-filebased]
+#            [--blacklist=T2_US_Florida[,...]]
+
 DRYRUN=""
 PREPARE_RECOVERY_TASK=""
 SUBMIT_RECOVERY_TASK=""
 RECOVERY_PREFIX=""
 SWITH_TO_FILEBASED=""
 FORCE=""
+CRAB_OPTIONS=()
 
 args=()
 for arg in "$@"; do
@@ -22,6 +28,10 @@ for arg in "$@"; do
     if [[ "$arg" == "--switch-to-filebased" ]]; then
         SWITH_TO_FILEBASED="--switch-to-filebased"
     fi
+    if [[ "$arg" == --blacklist=* ]]; then
+        CRAB_OPTIONS=(--options "siteblacklist=${arg#--blacklist=}")
+        continue
+    fi
     if [[ "$arg" == "--force" && -n "$RECOVERY_PREFIX" ]]; then
         FORCE="--yes"
     else
@@ -30,47 +40,50 @@ for arg in "$@"; do
 done
 set -- "${args[@]}"
 
-python3 sampleGeneration.py $1 --user $USER --skip-check
+YEAR=$1
+case ${YEAR} in
+    2018*)       YEAR=2018;        PSET_TAG=2018UL ;;
+    2017*)       YEAR=2017;        PSET_TAG=2017UL ;;
+    2016preVFP)  PSET_TAG=2016ULpreVFP ;;
+    2016postVFP) PSET_TAG=2016ULpostVFP ;;
+    *)
+        echo "Unknown year '${YEAR}'. Use 2018, 2017, 2016preVFP or 2016postVFP."
+        exit 1
+        ;;
+esac
+# 2018 keeps its historic work-area names
+WA_SUFFIX=${YEAR}v15
 
+python3 sampleGeneration.py ${YEAR} --user $USER --skip-check || exit 1
 
-if [[ $1 == 2018* ]]; then
+for TYPE in data mc; do
+    if [[ ${TYPE} == data ]]; then
+        SPLIT=(-s EventAwareLumiBased -n 100000)
+    else
+        SPLIT=(-s FileBased -n 2)
+    fi
+    CONF=${TYPE}/${TYPE}_${YEAR}.conf
+    if ! grep -q '^/' ${CONF} 2>/dev/null; then
+        echo "--- No ${TYPE} datasets for ${USER} in ${CONF}, skipping"
+        continue
+    fi
     python3 crab.py \
-        -p data_2018UL_NANO.py \
+        -p ${TYPE}_${PSET_TAG}_NANO.py \
         --site T2_BE_IIHE \
-        -o /store/group/CustomNanoAODv15/NanoTuples/2018/data \
+        -o /store/group/CustomNanoAODv15/NanoTuples/${YEAR}/${TYPE} \
         -t NanoTuples-uParTv3-parTlepID-NanoAODv15 \
-        -i data/data_2018.conf \
+        -i ${CONF} \
         -e exe_ULv15_nosel.sh \
         --num-cores 2 \
-        -s EventAwareLumiBased \
-        -n 100000 \
-        --work-area crab_projects/crab_projects_data_2018v15 \
+        "${SPLIT[@]}" \
+        --work-area crab_projects/crab_projects_${TYPE}_${WA_SUFFIX} \
         --input-files inputs \
         --max-memory 4500 \
         --max-job-runtime 2750 \
+        "${CRAB_OPTIONS[@]}" \
         $DRYRUN \
         $PREPARE_RECOVERY_TASK \
         $SUBMIT_RECOVERY_TASK \
         $RECOVERY_PREFIX $FORCE \
         $SWITH_TO_FILEBASED
-
-    python3 crab.py \
-        -p mc_2018UL_NANO.py \
-        --site T2_BE_IIHE \
-        -o /store/group/CustomNanoAODv15/NanoTuples/2018/mc \
-        -t NanoTuples-uParTv3-parTlepID-NanoAODv15 \
-        -i  mc/mc_2018.conf \
-        -e exe_ULv15_nosel.sh \
-        --num-cores 2 \
-        -s FileBased \
-        -n 2 \
-        --work-area crab_projects/crab_projects_mc_2018v15 \
-        --input-files inputs \
-        --max-memory 4500 \
-        --max-job-runtime 2750 \
-        $DRYRUN \
-        $PREPARE_RECOVERY_TASK \
-        $SUBMIT_RECOVERY_TASK \
-        $RECOVERY_PREFIX $FORCE \
-        $SWITH_TO_FILEBASED
-fi 
+done

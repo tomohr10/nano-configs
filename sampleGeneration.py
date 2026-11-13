@@ -37,7 +37,22 @@ SPREADSHEET_URLS = {
         "http://docs.google.com/spreadsheets/d/"
         "1LrKEphbzf0Ndt72WLrTjCrIh3_tuOEcQuTPHvCjlpQE/"
         "export?format=csv&gid=1486209551"
-    )
+    ),
+    "2017": (
+        "http://docs.google.com/spreadsheets/d/"
+        "1LrKEphbzf0Ndt72WLrTjCrIh3_tuOEcQuTPHvCjlpQE/"
+        "export?format=csv&gid=347627186"
+    ),
+    "2016preVFP": (
+        "http://docs.google.com/spreadsheets/d/"
+        "1LrKEphbzf0Ndt72WLrTjCrIh3_tuOEcQuTPHvCjlpQE/"
+        "export?format=csv&gid=810320443"
+    ),
+    "2016postVFP": (
+        "http://docs.google.com/spreadsheets/d/"
+        "1LrKEphbzf0Ndt72WLrTjCrIh3_tuOEcQuTPHvCjlpQE/"
+        "export?format=csv&gid=1995596786"
+    ),
 }
 
 

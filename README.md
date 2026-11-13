@@ -93,6 +93,26 @@ source /cvmfs/cms.cern.ch/common/crab-setup.sh
 
 **Step 1**: clone the repo and generate the python config file with `generateConfigs.sh`:
 
+For Run 2 UL (2016preVFP, 2016postVFP, 2017, 2018), use the branch with the 2016/2017 configs and submission script:
+
+```bash
+git clone https://github.com/tomohr10/nano-configs.git -b prod/CMSSW_15_0_17_nanoV15ExtSkim_run2UL1617
+cd nano-configs
+./generateConfigs.sh
+```
+
+If you already have a clone (e.g. from the 2018 production), switch it to this branch instead:
+
+```bash
+cd nano-configs
+git remote add fork https://github.com/tomohr10/nano-configs.git
+git fetch fork
+git switch -c prod/CMSSW_15_0_17_nanoV15ExtSkim_run2UL1617 --track fork/prod/CMSSW_15_0_17_nanoV15ExtSkim_run2UL1617
+./generateConfigs.sh
+```
+
+For Run 3:
+
 ```bash
 git clone https://github.com/SWuchterl/nano-configs.git -b prod/CMSSW_15_0_17_nanoV15ExtSkim
 cd nano-configs
@@ -100,6 +120,16 @@ cd nano-configs
 ```
 
 **Step 2**: use the `crab.py` script to submit the CRAB jobs:
+
+For Run 2 UL (T2B users), with `<year>` one of `2016preVFP`, `2016postVFP`, `2017`, `2018`:
+
+```bash
+./runT2BRun2.sh <year> --blacklist=T2_US_Florida --dryrun
+```
+
+This downloads the `<year> - Assignments` tab of the tracking spreadsheet and writes the datasets assigned to you (`$USER`) to `mc/mc_<year>.conf` and `data/data_<year>.conf`. Check these lists and the printed CRAB configs (`psetName` matches the year, e.g. `mc_2016ULpreVFP_NANO.py` or `data_2017UL_NANO.py`; `outLFNDirBase` = `/store/group/CustomNanoAODv15/NanoTuples/<year>/{mc,data}`), then submit by removing `--dryrun`. On the first submission CRAB asks for your grid pass phrase once.
+
+- `--blacklist=SITE[,SITE]`: sites CRAB must not use. `T2_US_Florida` is currently needed because T2_BE_IIHE rejects its host certificate, so output transfers from there fail.
 
 For 2024:
 

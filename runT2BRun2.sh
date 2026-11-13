@@ -2,7 +2,7 @@
 # Usage: ./runT2BRun2.sh <2018|2017|2016preVFP|2016postVFP> [--dryrun]
 #            [--prepare-recovery-task|--submit-recovery-task [--force]]
 #            [--switch-to-filebased]
-#            [--blacklist=T2_US_Florida[,...]]
+#            [--blacklist=T2_US_Florida[,...]] [--only=REGEX]
 
 DRYRUN=""
 PREPARE_RECOVERY_TASK=""
@@ -11,6 +11,7 @@ RECOVERY_PREFIX=""
 SWITH_TO_FILEBASED=""
 FORCE=""
 CRAB_OPTIONS=()
+ONLY=""
 
 args=()
 for arg in "$@"; do
@@ -27,6 +28,10 @@ for arg in "$@"; do
     fi
     if [[ "$arg" == "--switch-to-filebased" ]]; then
         SWITH_TO_FILEBASED="--switch-to-filebased"
+    fi
+    if [[ "$arg" == --only=* ]]; then
+        ONLY="${arg#--only=}"
+        continue
     fi
     if [[ "$arg" == --blacklist=* ]]; then
         CRAB_OPTIONS=(--options "siteblacklist=${arg#--blacklist=}")
@@ -55,6 +60,16 @@ esac
 WA_SUFFIX=${YEAR}v15
 
 python3 sampleGeneration.py ${YEAR} --user $USER --skip-check || exit 1
+
+# --only=REGEX: submit only the datasets matching REGEX (e.g. for a first test
+# task), the others are commented out in the generated confs
+if [[ -n "${ONLY}" ]]; then
+    for CONF in mc/mc_${YEAR}.conf data/data_${YEAR}.conf; do
+        awk -v re="${ONLY}" '/^\// && $0 !~ re {print "# " $0; next} {print}' ${CONF} > ${CONF}.tmp \
+            && mv ${CONF}.tmp ${CONF}
+        echo "--- --only: $(grep -c '^/' ${CONF}) active dataset(s) in ${CONF}"
+    done
+fi
 
 for TYPE in data mc; do
     if [[ ${TYPE} == data ]]; then
